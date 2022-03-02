@@ -7,7 +7,7 @@ class BinaryTrees { // 二叉树
     }
 
     public BinaryTrees(TreeNode root) {
-        this.setRoot(root);
+        setRoot(root);
     }
 
     public TreeNode getRoot() {
@@ -52,13 +52,13 @@ class TreeNode { // 二叉树节点
     }
 
     public TreeNode(int val) {
-        this.setVal(val);
+        setVal(val);
     }
 
     public TreeNode(int val, TreeNode left, TreeNode right) {
-        this.setVal(val);
-        this.setLeft(left);
-        this.setRight(right);
+        setVal(val);
+        setLeft(left);
+        setRight(right);
     }
 
     public int getVal() {
