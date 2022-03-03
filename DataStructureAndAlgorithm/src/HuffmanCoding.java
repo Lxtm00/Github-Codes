@@ -1,3 +1,4 @@
+import java.io.*;
 import java.util.*;
 
 class HuffmanNode implements Comparable<HuffmanNode> {
@@ -11,8 +12,8 @@ class HuffmanNode implements Comparable<HuffmanNode> {
     }
 
     public HuffmanNode(Byte data, int val) {
-        setData(data);
-        setVal(val);
+        this.data = data;
+        this.val = val;
     }
 
     public Byte getData() {
@@ -51,26 +52,38 @@ class HuffmanNode implements Comparable<HuffmanNode> {
         // 创建接口以兼容Collections.sort()方法
         return getVal() - o.getVal();
     }
+
+    /**
+     * 将传入node树所有node节点的赫夫曼编码求取并放入huffmanCodes集合
+     * @param code 路径：左子节点为0，右子节点为1
+     */
+    private void getCodesPackeged(String code, StringBuilder stringBuilder, Map<Byte, String> huffmanCodes) {
+        StringBuilder stringBuilder2 = new StringBuilder(); // 用于拼接
+        stringBuilder2.append(code);
+        if (left != null || right != null) { // 处理非叶子节点
+            if (left != null) {
+                left.getCodesPackeged("0", stringBuilder2, huffmanCodes); // 向左递归
+            }
+            if (right != null) {
+                right.getCodesPackeged("1", stringBuilder2, huffmanCodes); // 向右递归
+            }
+        } else { // 处理叶子节点
+            huffmanCodes.put(getData(), stringBuilder2.toString());
+        }
+    }
+
+    public void getCodes(Map<Byte, String> huffmanCodes) { // 根节点调用，且已经判空
+        StringBuilder stringBuilder = new StringBuilder();
+        getCodesPackeged("0", stringBuilder, huffmanCodes);
+        getCodesPackeged("1", stringBuilder, huffmanCodes);
+    }
 }
 
 class HuffmanTree {
-    private HuffmanNode root;
-
-    public HuffmanTree(){}
-    public HuffmanTree(HuffmanNode root) {
-        setRoot(root);
-    }
-    public HuffmanNode getRoot() {
-        return root;
-    }
-
-    public void setRoot(HuffmanNode root) {
-        this.root = root;
-    }
     /**
      * @param contentByte 转换为Byte的待压缩数据
      */
-    private void createHuffmanTree(byte[] contentByte) {
+    public static void createHuffmanTree(byte[] contentByte, Map<Byte, String> huffmanCodes) {
         List<HuffmanNode> nodes = new ArrayList<>();
         // 遍历统计，注意重复问题
         Map<Byte, Integer> charCounter = new HashMap<>();
@@ -96,65 +109,155 @@ class HuffmanTree {
             nodes.remove(rightNode);
             nodes.add(parent);
         }
-        setRoot(nodes.get(0));
+        nodes.get(0).getCodes(huffmanCodes);
+    }
+}
+
+
+class HuffmanFile {
+    private static byte[] contentOriginal = null;
+    private static byte[] contentCoded = null;
+    private static byte[] contentDecoded = null;
+    private static Map<Byte, String> huffmanCodes = new HashMap<>();
+
+    // 构造器、输出器部分省略
+    public void setContentOriginal(String str) {
+        contentOriginal = str.getBytes();
     }
 
-    static Map<Byte, String> huffmanCodes = new HashMap<Byte, String>;
-
-    // 主程序调用方法 getCodes(root); 最终结果在huffmanCodes中
-    private Map<Byte, String> getCodes() {
-        StringBuilder stringBuilder = new StringBuilder();
-        if (getRoot() == null) {
-            return null;
-        } else {
-            getCodes(getRoot().getLeft(), "0", stringBuilder);
-            getCodes(getRoot().getRight(), "1", stringBuilder);
-        }
-        return huffmanCodes;
-    }
-
-    /**
-     * @function:将传入node树所有node节点的赫夫曼编码求取并放入huffmanCodes集合
-     * @param code 路径：左子节点为0，右子节点为1
-     * @return
-     */
-    private static void getCodes(HuffmanNode node, String code, StringBuilder stringBuilder) {
-        StringBuilder stringBuilder2 = new StringBuilder(); // 用于拼接
-        stringBuilder2.append(code);
-        if (node != null) { // 不处理空节点
-            if (node == null) { // 处理非叶子节点
-                getCodes(node.left, "0", stringBuilder2); // 向左递归
-                getCodes(node.right, "1", stringBuilder2); // 向右递归
-            } else { // 处理叶子节点
-                huffmanCodes.put(node.data, stringBuilder2.toString());
+    public static void zipFilePackeged(String srcFile, String dstFile) {
+        /*
+         * @param srcFile 源文件地址
+         * @param dstFile 目标文件地址
+         */
+        FileInputStream is = null;
+        FileOutputStream os = null;
+        ObjectOutputStream oos = null;
+        try {
+            is = new FileInputStream(srcFile);
+            contentOriginal = new byte[is.available()];
+            is.read(contentOriginal);
+            huffmanCompression();
+            os = new FileOutputStream(dstFile);
+            oos = new ObjectOutputStream(os);
+            oos.writeObject(contentCoded); // 写入文件编码结果
+            oos.writeObject(huffmanCodes); // 写入编码表
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        } finally {
+            try {
+                is.close();
+                oos.close();
+                os.close();
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
             }
         }
     }
 
-    private static byte[] compression(byte[] bytes, Map<Char, String> huffmanCodes) {
+    public static void unZipFilePackeged(String srcFile, String dstFile) {
+        /*
+         * @param srcFile 源文件地址
+         * @param dstFile 目标文件地址
+         */
+        InputStream is = null;
+        ObjectInputStream ois = null;
+        OutputStream os = null;
+        try {
+            is = new FileInputStream(srcFile);
+            ois = new ObjectInputStream(is);
+            contentCoded = (byte[]) ois.readObject();
+            huffmanCodes = (Map<Byte, String>) ois.readObject();
+            huffmanDecompression();
+            os = new FileOutputStream(dstFile);
+            os.write(contentOriginal);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        } finally {
+            try {
+                os.close();
+                ois.close();
+                is.close();
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
+    }
+
+    private static void huffmanCodesFormation() {
+        HuffmanTree.createHuffmanTree(contentOriginal, huffmanCodes); // 生成赫夫曼编码表
+    }
+
+    private static void huffmanCompression() {
+        if (huffmanCodes == null) {
+            huffmanCodesFormation();
+        }
+        contentCoded = compressionPackeged(contentOriginal);
+    }
+
+    private static void huffmanDecompression() {
+        contentDecoded = decompressionPackeged(contentCoded);
+    }
+
+    private static byte[] compressionPackeged(byte[] bytes) {
         /*
          * @param bytes 原始字符串对应的数组
          * @param huffmanCodes 赫夫曼编码表
          * @return 返回编码后的byte数组（补码方式存储）
          */
         // 1、将byte转成赫夫曼编码对应的字符串
-        StringBuilder stringBuilder = new StringBuilder;
+        StringBuilder stringBuilder = new StringBuilder();
         for (byte b : bytes) {
             stringBuilder.append(huffmanCodes.get(b));
         }
         // 2、将字符串转为byte数组
         int len = (stringBuilder.length() + 7) / 8;
-        byte[] huffmanCodeBytes = new byte[len];
+        byte[] huffmanCodeFile = new byte[len];
         for (int i = 0; i < stringBuilder.length(); i += 8) { // 1byte = 8bit
             String strByte;
             if (i + 8 > stringBuilder.length()) {
-                strByte = stringBuilder.sbuString(i);
+                strByte = stringBuilder.substring(i);
             } else {
-                strByte = stringBuilder.sbuString(i, i + 8);
+                strByte = stringBuilder.substring(i, i + 8);
             }
-            huffmanCodeBytes[i / 8] = (byte) Integer.parseInt(strByte, 2);
+            huffmanCodeFile[i / 8] = (byte) Integer.parseInt(strByte, 2);
         }
-        return huffmanCodeBytes;
+        return huffmanCodeFile;
+    }
+
+    private static byte[] decompressionPackeged(byte[] huffmanCodeFile) {
+        /*
+         * @param huffmanCodes编码表
+         * @param huffmanCodeBytes
+         */
+        StringBuilder strBuilder1 = new StringBuilder(); // 1、构成二进制字符串
+        for (int i = 0; i < huffmanCodeFile.length; i++) {
+            Byte b = huffmanCodeFile[i];
+            boolean flag = (i == huffmanCodeFile.length - 1);
+            strBuilder1.append(byteToBitString(!flag, b));
+        }
+        // 因为要反向查询，所以要调换Key与Value
+        Map<String, Byte> map = new HashMap<>();
+        for (Map.Entry<Byte, String> entry : huffmanCodes.entrySet()) {
+            map.put(entry.getValue(), entry.getKey());
+        }
+        // 查询解码
+        List<Byte> list = new ArrayList<>();
+        int preIndex = 0, i = 0;
+        while (i < strBuilder1.length()) {
+            i++;
+            String key = strBuilder1.substring(preIndex, i);
+            Byte b = map.get(key);
+            if (b != null) {
+                preIndex = i;
+                list.add(b);
+            }
+        }
+        byte[] output = new byte[list.size()];
+        for (i = 0; i < output.length; i++) {
+            output[i] = list.get(i);
+        }
+        return output;
     }
 
     private static String byteToBitString(boolean flag, byte b) {
@@ -168,131 +271,6 @@ class HuffmanTree {
             return str.substring(str.length() - 8);
         } else {
             return str;
-        }
-    }
-
-    private static byte[] decompression(Map<Byte, String> huffmanCodes, byte[] huffmanCodeBytes) {
-        /*
-         * @param huffmanCodes编码表
-         * @param huffmanCodeBytes
-         */
-        StringBuilder strBuilder1 = new StringBuilder; // 1、构成二进制字符串
-        for (int i = 0; i < huffmanBytes.length; i++) {
-            Byte b = huffmanBytes[i];
-            boolean flag = (i == huffmanBytes.length - 1);
-            strBuilder1.append(byteToBitString(!flag, b));
-        }
-        // 因为要反向查询，所以要调换Key与Value
-        Map<String, Byte> map = new HashMap<String, Byte>();
-        for (Map.Entry<Byte, String> entry : huffmanCodes.entrySet()) {
-            map.put(entry.getValue(), entry.getKey());
-        }
-        // 查询解码
-        List<Byte> list = new ArrayList<>();
-        int preIndex = 0, i = 0;
-        while (i < strBuilder1.length()) {
-            i++;
-            String key = stringBuilder1.subString(preIndex, i);
-            Byte b = map.get(key);
-            if (b != null) {
-                preIndex = i;
-                list.add(b);
-            }
-        }
-        byte[] output = new byte[list.size()];
-        for (int i = 0; i < output.length; i++) {
-            b[i] = list.get(i);
-        }
-    }
-
-
-}
-
-
-class HuffmanFile {
-    byte[] contentOriginal = null;
-    byte[] contentCoded = null;
-    Map<Byte, String> huffmanCodes = null;
-
-    // 构造器、输出器部分省略
-    private contentOriginal(String str) {
-        contentOriginal = str.getbyte();
-    }
-
-    private static void huffmanCodesFormation() {
-        List<HuffmanNode> nodes = getNodes(contentOriginal); // 构建节点List
-        HuffmanNode huffmanTreeRoot = createHuffmanTree(nodes); // 创建赫夫曼树
-        huffmanCodes = getCodes(huffmanTreeRoot); // 生成赫夫曼编码表
-    }
-
-    private static void huffmanCompression() {
-        if (huffmanCodes == null) {
-            huffmanCodesFormation();
-        }
-        contentCoded = compression(contentOriginal, huffmanCodes);
-    }
-
-    private static void huffmanDecompression() {
-        contentOriginal = decompression(huffmanCodes, contentCoded);
-    }
-
-    public static void zipFile(String srcFile, String dstFile) {
-        /*
-         * @param srcFile 源文件地址
-         * @param dstFile 目标文件地址
-         */
-        FileInputStream is = null;
-        OutputStream os = null;
-        ObjectOutputStream oos = null;
-        try {
-            is = new FileInputStream(srcFile);
-            contentOriginal = new byte[is.available()];
-            is.read(contentOriginal);
-            huffmanCompression();
-            os = new OutputStream(dstFile);
-            oos = new ObjectOutputStream(os);
-            oos.writeObject(contentCoded); // 写入文件编码结果
-            oos.writeObject(huffmanCodes); // 写入编码表
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        } finally {
-            try {
-                is.close();
-                oos.close();
-                os.close();
-catch(Exception e){
-                    System.out.println(e.getMessage());
-                }
-            }
-        }
-    }
-
-    public static void unZipFile(String srcFile, String dstFile) {
-        /*
-         * @param srcFile 源文件地址
-         * @param dstFile 目标文件地址
-         */
-        InputStream is = null;
-        ObjectInputStream ois = null;
-        OutputStream os = null;
-        try {
-            is = new FileInputStream(srcFile);
-            ois = new ObjectOutputStream(os);
-            contentCoded = (byte[]) ois.readObject();
-            huffmanCodes = (Map<Byte, String>) ois.readObject();
-            huffmanDecompression();
-            os = new FileOutputStream(dstFile);
-            os.write(huffmanOriginal);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        } finally {
-            try {
-                os.close();
-                ois.close();
-                is.close();
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
         }
     }
 }
