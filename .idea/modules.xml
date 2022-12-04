@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/2D_FFT/2D_FFT.iml" filepath="$PROJECT_DIR$/2D_FFT/2D_FFT.iml" />
+      <module fileurl="file://$PROJECT_DIR$/DataStructureAndAlgorithm/DataStructureAndAlgorithm.iml" filepath="$PROJECT_DIR$/DataStructureAndAlgorithm/DataStructureAndAlgorithm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Github Codes.iml" filepath="$PROJECT_DIR$/.idea/Github Codes.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Guli Shop/Guli Shop.iml" filepath="$PROJECT_DIR$/Guli Shop/Guli Shop.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Leet-code Solutions/Leet-code Solutions.iml" filepath="$PROJECT_DIR$/Leet-code Solutions/Leet-code Solutions.iml" />
+    </modules>
+  </component>
+</project>

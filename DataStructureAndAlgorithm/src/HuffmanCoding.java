@@ -55,6 +55,7 @@ class HuffmanNode implements Comparable<HuffmanNode> {
 
     /**
      * 将传入node树所有node节点的赫夫曼编码求取并放入huffmanCodes集合
+     *
      * @param code 路径：左子节点为0，右子节点为1
      */
     private void getCodesPackeged(String code, StringBuilder stringBuilder, Map<Byte, String> huffmanCodes) {
